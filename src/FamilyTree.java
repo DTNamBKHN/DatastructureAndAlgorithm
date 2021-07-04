@@ -21,10 +21,6 @@ public class FamilyTree {
 
 	Node root;
 	
-	public FamilyTree() {
-		super();
-	}
-
 	public FamilyTree(String rootName) {
 		root = new Node(rootName);
 	}
@@ -60,13 +56,26 @@ public class FamilyTree {
 		}
 	}
 	
+	public void addChild(Node p, Node child) {
+		//there is already a "child" node in tree
+		Node pi = p.leftMostChild; //head of the children list
+		if (pi == null) {
+			p.leftMostChild = child;
+		} else {
+			while (pi.rightSibling != null) {
+				pi = pi.rightSibling;
+			}
+			pi.rightSibling = child;
+		}
+	}
+	
 	private void preorder(Node r) {
 		if (r == null) return;
 		System.out.print(r.name + " ");
 		Node p = r.leftMostChild;
 		while (p != null) {
 			preorder(p);
-			p = p.rightSibling;
+			p= p.rightSibling;
 		}
 	}
 	
@@ -124,10 +133,9 @@ public class FamilyTree {
 		return parent(root, p);
 	}
 	
-	public static String findRoot() {
+	public Node readFile(Node root) {
 		ArrayList<String> wasParentArrayList = new ArrayList<String>();
 		ArrayList<String> wasChildArrayList = new ArrayList<String>();
-		ArrayList<String> ancestorList = new ArrayList<String>();
 		int i = 0, j = 0;
 		FileReader reader;
 		try {
@@ -135,28 +143,61 @@ public class FamilyTree {
 			BufferedReader bufferedReader = new BufferedReader(reader);
 			
 			String line;
+			int time = 0;
 			try {
 				while ((line = bufferedReader.readLine()) != null) {
 					String[] arrOfStr = line.split(" ", 2);
-					if(!wasParentArrayList.contains(arrOfStr[1])) {
+					Node parentNode = find(root, arrOfStr[1]);
+					if (parentNode != null) {//parentNode exists
+						Node childNode = find(root, arrOfStr[0]);
+						if(childNode != null) {//childNode exists in tree
+							addChild(parentNode, childNode);
+						}
+						else {//childNode does not exist in tree
+							addChild(parentNode, arrOfStr[0]);
+						}
+						System.out.println("Thang BO hien tai "+ parentNode.name);
+//						System.out.println("TEN CUA CON: " + temp.leftMostChild.name);
+						time++;
+						System.out.println("Chay dc " + time + " lan roi ne ulala");
+						preorder(parentNode);
+					}
+					else {//parentNode does not exist
+						Node newParent = new Node(arrOfStr[1]);
+						addChild(root, newParent);
+						
+						Node childNode = find(root, arrOfStr[0]);
+						if(childNode != null) {//childNode exists in tree
+							addChild(newParent, childNode);
+						}
+						else {//childNode does not exist in tree
+							addChild(newParent, arrOfStr[0]);
+						}
+						System.out.println("Thang bo hien tai " + newParent.name);
+//						System.out.println("Ten cua con " + newParent.leftMostChild.name);
+						time++;
+						System.out.println("Chay dc " + time + " lan roi ne");
+						preorder(newParent);
 						wasParentArrayList.add(arrOfStr[1]);
 					}
-					
 					if (!wasChildArrayList.contains(arrOfStr[0])) {
 						wasChildArrayList.add(arrOfStr[0]);
 					}
 				}
+//				Node findNode = find("Mark");
+//				System.out.println("tim node trong ***: " + findNode.leftMostChild.name);
+//				preorder(findNode);
 				String[] wasParentArray = new String[wasParentArrayList.size()];
 				String[] wasChildArray = new String[wasChildArrayList.size()];
-				Iterator<String> k = wasParentArrayList.iterator();
+				Iterator k = wasParentArrayList.iterator();
 				while (k.hasNext()) {
 					wasParentArray[i++] = (String) k.next();
 			      }
-				Iterator<String> l = wasChildArrayList.iterator();
+				Iterator l = wasChildArrayList.iterator();
 				while (l.hasNext()) {
 					wasChildArray[j++] = (String) l.next();
 			      }
-				
+				preorder(root);
 				int checkAncestor = 0;
 				for (i = 0; i < wasParentArray.length; i++) {
 					for (j = 0; j < wasChildArray.length; j++) {
@@ -166,18 +207,15 @@ public class FamilyTree {
 						checkAncestor++;
 					}
 					if (checkAncestor == wasChildArray.length) {
-						ancestorList.add(wasParentArray[i]);
+						root = find(wasParentArray[i]);
+						break;
 					}
 					checkAncestor = 0;
 				}
-				if (ancestorList.size() > 1) {
-					bufferedReader.close();
-					reader.close();
-					return null;
-				}
+				
 				bufferedReader.close();
 				reader.close();
-				return ancestorList.get(0);
+				return root;
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -189,46 +227,25 @@ public class FamilyTree {
 		return null;
 	}
 	
-	public void buildTree() {
-		try {
-			FileReader reader = new FileReader("data.txt");
-			BufferedReader bufferedReader = new BufferedReader(reader);
-			String line;
-			try {
-				while ((line = bufferedReader.readLine()) != null) {
-					String[] arrOfStr = line.split(" ", 2);
-					Node findNode = find(arrOfStr[1]);
-					if (findNode != null) {//node exists
-						System.out.println("ten cua node duoc tim thay: " + findNode.name);
-						addChild(findNode, arrOfStr[0]);
-					}
-					else {//node does not exist
-						Node newParent = new Node(arrOfStr[1]);
-						addChild(newParent, arrOfStr[0]);
-					}
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		String ancestor = FamilyTree.findRoot();
-		if (ancestor != null) {
-			System.out.println("Ancestor: " + ancestor);
-		}
-		else {
-			System.out.println("No unique highest ancestor!!!");
-		}
-		FamilyTree tree = new FamilyTree(ancestor);
-		tree.buildTree();
+		FamilyTree tree = new FamilyTree("***");
+//		tree.addChild(tree.root, "Peter");
+//		tree.addChild(tree.root, "Mark");
+//		tree.addChild(tree.root, "David");
+//		Node mark = tree.find("Mark");
+//		tree.addChild(mark, "Paul");
+//		tree.addChild(mark, "Stepen");
+//		tree.addChild(mark, "Thomas");
+//		Node david = tree.find("David");
+//		tree.addChild(david, "John");
+//		tree.addChild(david, "Bill");
+//		Node thomas = tree.find("Thomas");
+//		tree.addChild(thomas, "Michael");
+//		tree.addChild(thomas, "Pierre");
+		tree.root = tree.readFile(tree.root);
+		System.out.println("goc hien tai: "+ tree.root.name);
 		tree.preorder();
 	}
+
 }
